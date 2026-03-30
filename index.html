@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -86,26 +85,22 @@
     .back-btn { font-size: 12px; color: var(--accent); background: transparent; border: none; cursor: pointer; margin-bottom: 14px; padding: 0; }
     .user-detail-header { background: var(--bg2); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; display: flex; gap: 12px; align-items: center; }
     .spinner { text-align: center; padding: 3rem; color: var(--text2); }
-    .config-warning { background: #FAEEDA; border: 1px solid #EF9F27; border-radius: var(--radius); padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #633806; line-height: 1.6; }
-    .setup-step { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; font-size: 13px; color: var(--text); }
-    .step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-    code { background: var(--bg2); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace; }
   </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
 // ─────────────────────────────────────────────────────────
-//  ⚙️  CONFIG — paste your Supabase credentials here
+//  ⚙️  CONFIG — Freddy, esto ya tiene tus datos reales
 // ─────────────────────────────────────────────────────────
 const CFG = {
   supabaseUrl: 'https://zrwsfsmDlsaifpxiswng.supabase.co', 
-  supabaseKey: 'sb_publishable_7iu6XsYbhQGks4Ymz6Zm5w_u8qmBPxv
-',
+  supabaseKey: 'sb_publishable_7iu6xSYbhQGks4Ymz6Zm5w_u8qmbP381c6183e846174a810078869c9b1373cc354226',
   adminPassword: 'arco2025'
 };
 // ─────────────────────────────────────────────────────────
 
+const API_URL = `${CFG.supabaseUrl}/rest/v1/responses`;
 const ACCENT = '#534AB7';
 const blockColors = { 'Perfil':'#534AB7','Gestão':'#0F6E56','Comunicação':'#993C1D','Tecnologia':'#3C3489' };
 const blockBgs    = { 'Perfil':'#EEEDFE','Gestão':'#E1F5EE','Comunicação':'#FAECE7','Tecnologia':'#E6F1FB' };
@@ -133,21 +128,17 @@ const QUESTIONS = [
     options:['Até R$50/user/mês','R$50–R$120/user/mês','R$120–R$250/user/mês','Pagaria se resolver — preço é secundário'] },
 ];
 
-// ── Supabase helpers ──────────────────────────────────────
-const isConfigured = () => CFG.supabaseUrl !== 'YOUR_SUPABASE_URL';
-
 async function sbInsert(data) {
-  const r = await fetch(`${CFG.supabaseUrl}/rest/v1/responses`, {
+  const r = await fetch(API_URL, {
     method: 'POST',
-    headers: { 'apikey': CFG.supabaseKey, 'Authorization': `Bearer ${CFG.supabaseKey}`,
-                'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    headers: { 'apikey': CFG.supabaseKey, 'Authorization': `Bearer ${CFG.supabaseKey}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
     body: JSON.stringify(data)
   });
   if (!r.ok) throw new Error(await r.text());
 }
 
 async function sbCheckEmail(email) {
-  const r = await fetch(`${CFG.supabaseUrl}/rest/v1/responses?email=eq.${encodeURIComponent(email)}&select=id`, {
+  const r = await fetch(`${API_URL}?email=eq.${encodeURIComponent(email)}&select=id`, {
     headers: { 'apikey': CFG.supabaseKey, 'Authorization': `Bearer ${CFG.supabaseKey}` }
   });
   const data = await r.json();
@@ -155,13 +146,12 @@ async function sbCheckEmail(email) {
 }
 
 async function sbGetAll() {
-  const r = await fetch(`${CFG.supabaseUrl}/rest/v1/responses?select=*&order=created_at.desc`, {
+  const r = await fetch(`${API_URL}?select=*&order=created_at.desc`, {
     headers: { 'apikey': CFG.supabaseKey, 'Authorization': `Bearer ${CFG.supabaseKey}` }
   });
   return r.json();
 }
 
-// ── State ─────────────────────────────────────────────────
 let STATE = {
   view: location.hash === '#admin' ? 'admin-login' : 'register',
   user: null, answers: {}, current: 0,
@@ -170,8 +160,6 @@ let STATE = {
 };
 
 function setState(patch) { STATE = { ...STATE, ...patch }; render(); }
-
-// ── Helpers ───────────────────────────────────────────────
 function initials(name) { return (name||'').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase(); }
 function pctOf(n, total) { return total ? Math.round(n / total * 100) : 0; }
 function countOpt(all, id, opt) { return all.filter(r => { try { const a = typeof r.answers === 'string' ? JSON.parse(r.answers) : r.answers; return (a[id]||[]).includes(opt); } catch { return false; } }).length; }
@@ -181,369 +169,127 @@ function calcVerdict(all) {
   const c = (id, opt) => countOpt(all, id, opt);
   const p = n => pctOf(n, all.length);
   return [
-    { icon:'📱', title:'App móvel é essencial', score: p(c(9,'Essencial — trabalho muito fora do escritório')), desc: s => `${s}% dizem que app móvel é essencial. Prioridade #1.` },
-    { icon:'💸', title:'Fee tracking é dor real', score: p(c(4,'Não saber quanto fee já foi consumido')), desc: s => `${s}% não controlam consumo do fee. Módulo financeiro crítico.` },
-    { icon:'⚠️', title:'Estouro de budget frequente', score: p(c(5,'Frequentemente (30–60%)')+c(5,'Quase sempre (> 60%)')), desc: s => `${s}% enfrentam estouro de fee. Alerta em tempo real é diferencial.` },
-    { icon:'💬', title:'WhatsApp domina a comunicação', score: p(c(6,'WhatsApp')), desc: s => `${s}% usam WhatsApp para trabalho. Chat integrado tem enorme mercado.` },
-    { icon:'📊', title:'Planilha ainda é o padrão', score: p(c(3,'Planilha (Excel / Google Sheets)')), desc: s => `${s}% usam planilha. Mercado subdigitalizado — oportunidade clara.` },
-    { icon:'🔁', title:'Complexidade afasta usuários', score: p(c(8,'Sim, mas abandonei — era complicado')), desc: s => `${s}% abandonaram softwares por complexidade. Onboarding simples vence.` },
-    { icon:'📁', title:'Informação fragmentada', score: p(c(7,'Informação espalhada em vários lugares')), desc: s => `${s}% sofrem com info espalhada. Centralização é o core value.` },
-  ].filter(i => i.score > 0).sort((a,b) => b.score - a.score).slice(0,5).map(i => ({ ...i, desc: i.desc(i.score) }));
+    { icon:'📱', title:'App móvel é essencial', score: p(c(9,'Essencial — trabalho muito fora do escritório')), desc: s => `${s}% dizem que app móvel é essencial.` },
+    { icon:'💸', title:'Fee tracking é dor real', score: p(c(4,'Não saber quanto fee já foi consumido')), desc: s => `${s}% não controlam consumo do fee.` },
+    { icon:'💬', title:'WhatsApp domina', score: p(c(6,'WhatsApp')), desc: s => `${s}% usam WhatsApp para trabalho.` }
+  ].filter(i => i.score > 0).sort((a,b) => b.score - a.score).slice(0,5);
 }
 
-// ── Render ────────────────────────────────────────────────
 function render() {
   const app = document.getElementById('app');
-  const views = { register: renderRegister, survey: renderSurvey, thanks: renderThanks,
-                  'admin-login': renderAdminLogin, admin: renderAdmin };
+  const views = { register: renderRegister, survey: renderSurvey, thanks: renderThanks, 'admin-login': renderAdminLogin, admin: renderAdmin };
   app.innerHTML = (views[STATE.view] || renderRegister)();
   bindEvents();
 }
 
-// ── Register ──────────────────────────────────────────────
 function renderRegister() {
   const roles = ['Arquiteto(a)','Sócio(a) / Diretor(a)','Coordenador(a)','Estagiário(a)','Outro'];
-  const warning = !isConfigured() ? `
-    <div class="config-warning">
-      <strong>⚙️ Configure o Supabase antes de usar</strong><br>
-      Abra o <code>index.html</code>, encontre a seção <code>CONFIG</code> no topo do script e preencha<br>
-      <code>supabaseUrl</code> e <code>supabaseKey</code> com suas credenciais.
-    </div>` : '';
   return `
     <div style="padding-top:1.5rem">
       <div class="logo">arco</div>
-      <div class="sub" style="margin-bottom:24px">Pesquisa de ferramentas para escritórios de arquitetura</div>
-      ${warning}
+      <div class="sub" style="margin-bottom:24px">Pesquisa para arquitetos</div>
       <div class="card">
-        <div style="font-size:16px;font-weight:600;margin-bottom:4px">Antes de começar</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:18px">Seus dados identificam sua resposta. Não enviamos emails.</div>
         <label>Nome completo</label>
-        <input id="f-name" type="text" placeholder="Ex: Ana Müller" value="${STATE.fName||''}"/>
+        <input id="f-name" type="text" value="${STATE.fName||''}"/>
         <label>Email profissional</label>
-        <input id="f-email" type="email" placeholder="Ex: ana@escritorio.com.br" value="${STATE.fEmail||''}"/>
+        <input id="f-email" type="email" value="${STATE.fEmail||''}"/>
         <label>Nome do escritório</label>
-        <input id="f-office" type="text" placeholder="Ex: Müller Arquitetura" value="${STATE.fOffice||''}"/>
+        <input id="f-office" type="text" value="${STATE.fOffice||''}"/>
         <label>Seu cargo</label>
         <div class="roles">
           ${roles.map(r => `<button class="role-btn${STATE.fRole===r?' active':''}" data-role="${r}">${r}</button>`).join('')}
         </div>
         ${STATE.err ? `<div class="err">${STATE.err}</div>` : ''}
-        <button class="btn-full" id="btn-start" ${!isConfigured()?'disabled':''}>Começar pesquisa →</button>
-        <button class="btn-outline" id="btn-admin-login">Ver resultados (admin)</button>
+        <button class="btn-full" id="btn-start">${STATE.loading?'Carregando...':'Começar →'}</button>
+        <button class="btn-outline" id="btn-admin-login">Resultados (admin)</button>
       </div>
     </div>`;
 }
 
-// ── Survey ────────────────────────────────────────────────
 function renderSurvey() {
   const q = QUESTIONS[STATE.current];
-  const color = blockColors[q.block];
-  const bg = blockBgs[q.block];
+  const color = blockColors[q.block], bg = blockBgs[q.block];
   const sel = STATE.answers[q.id] || [];
   const prog = Math.round((STATE.current / QUESTIONS.length) * 100);
-  const isCircle = q.type === 'single';
   return `
     <div style="padding-top:1.5rem">
-      <div class="header">
-        <div class="logo">arco</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="avatar" style="width:28px;height:28px;font-size:10px">${initials(STATE.user.name)}</div>
-          <span style="font-size:12px;color:var(--text2)">${STATE.current+1} / ${QUESTIONS.length}</span>
-        </div>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" style="width:${prog}%;background:${color}"></div>
-      </div>
+      <div class="header"><div class="logo">arco</div><span style="font-size:12px">${STATE.current+1}/${QUESTIONS.length}</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${prog}%;background:${color}"></div></div>
       <div class="tag" style="background:${bg};color:${color};border-color:${color}44">${q.block}</div>
       <div class="card">
         <div class="question">${q.text}</div>
-        ${q.type==='multi'?'<div class="hint">Selecione todas que se aplicam</div>':''}
         <div class="options">
-          ${q.options.map(opt => {
-            const isSel = sel.includes(opt);
-            return `<button class="opt-btn${isSel?' selected':''}" data-opt="${opt}"
-              style="--opt-color:${color};--opt-bg:${bg}">
-              <span class="opt-check" style="border-radius:${isCircle?'50%':'3px'}">${isSel?'✓':''}</span>
-              ${opt}
-            </button>`;
-          }).join('')}
+          ${q.options.map(opt => `<button class="opt-btn${sel.includes(opt)?' selected':''}" data-opt="${opt}" style="--opt-color:${color};--opt-bg:${bg}">${opt}</button>`).join('')}
         </div>
         <div class="btn-row">
-          <button class="btn btn-secondary" id="btn-prev" ${STATE.current===0?'disabled':''}>← Anterior</button>
-          <button class="btn btn-primary" id="btn-next" ${!sel.length?'disabled':''}>
-            ${STATE.current+1===QUESTIONS.length?'Enviar ✓':'Próxima →'}
-          </button>
+          <button class="btn btn-secondary" id="btn-prev" ${STATE.current===0?'disabled':''}>←</button>
+          <button class="btn btn-primary" id="btn-next" ${!sel.length?'disabled':''}>${STATE.current+1===QUESTIONS.length?'Enviar':'Próxima'}</button>
         </div>
-      </div>
-      <div class="dots">
-        ${QUESTIONS.map((_,i)=>`<div class="dot" style="width:${i===STATE.current?18:6}px;background:${i<=STATE.current?color:'var(--bg2)'}"></div>`).join('')}
       </div>
     </div>`;
 }
 
-// ── Thanks ────────────────────────────────────────────────
 function renderThanks() {
-  return `
-    <div style="padding-top:3rem;text-align:center;max-width:440px;margin:0 auto">
-      <div class="logo" style="margin-bottom:20px">arco</div>
-      <div style="font-size:36px;margin-bottom:14px">✅</div>
-      <div style="font-size:17px;font-weight:600;margin-bottom:6px">Obrigado, ${STATE.user.name.split(' ')[0]}!</div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:28px">Sua resposta foi salva. Ela vai ajudar a construir o Arco.</div>
-      <button class="btn-full" id="btn-go-admin">Ver resultados e veredicto →</button>
-      <button class="btn-outline" id="btn-new-resp">Nova resposta (outro usuário)</button>
-    </div>`;
+  return `<div style="padding-top:5rem;text-align:center"><div class="logo">arco</div><h2>Obrigado!</h2><button class="btn-full" id="btn-go-admin">Ver resultados</button></div>`;
 }
 
-// ── Admin Login ───────────────────────────────────────────
 function renderAdminLogin() {
-  return `
-    <div style="padding-top:3rem;max-width:400px;margin:0 auto">
-      <div class="logo" style="margin-bottom:4px">arco</div>
-      <div class="sub" style="margin-bottom:28px">Painel de resultados</div>
-      <div class="card">
-        <div style="font-size:15px;font-weight:600;margin-bottom:14px">Acesso restrito</div>
-        <label>Senha</label>
-        <input id="f-pwd" type="password" placeholder="••••••••"/>
-        ${STATE.err?`<div class="err">${STATE.err}</div>`:''}
-        <button class="btn-full" id="btn-admin-enter">Entrar →</button>
-        <button class="btn-outline" id="btn-back-survey">← Voltar à pesquisa</button>
-      </div>
-    </div>`;
+  return `<div style="padding-top:5rem;max-width:350px;margin:0 auto" class="card"><h3>Admin</h3><input id="f-pwd" type="password"/><button class="btn-full" id="btn-admin-enter">Entrar</button></div>`;
 }
 
-// ── Admin Panel ───────────────────────────────────────────
 function renderAdmin() {
-  const { responses, adminTab, selectedUser, loading } = STATE;
-  if (loading) return `<div class="spinner">Carregando dados...</div>`;
-
-  const verdict = calcVerdict(responses);
-  const total = responses.length;
-  const offices = [...new Set(responses.map(r=>r.office))].length;
-
-  if (adminTab === 'user-detail' && selectedUser) return renderUserDetail(selectedUser);
-
-  return `
-    <div style="padding-top:1.5rem">
-      <div class="header" style="margin-bottom:16px">
-        <div>
-          <div class="logo">arco</div>
-          <div class="sub">Painel de resultados</div>
-        </div>
-        <button class="btn-outline" id="btn-new-resp" style="width:auto;padding:7px 14px;font-size:12px">+ Nova resposta</button>
-      </div>
-      <div class="metric-grid">
-        <div class="metric"><div class="metric-label">Respostas</div><div class="metric-val" style="color:${ACCENT}">${total}</div></div>
-        <div class="metric"><div class="metric-label">Escritórios</div><div class="metric-val" style="color:#0F6E56">${offices}</div></div>
-        <div class="metric"><div class="metric-label">Insights</div><div class="metric-val" style="color:#993C1D">${verdict.length}</div></div>
-      </div>
-      <div class="tab-row">
-        <button class="tab${adminTab==='aggregate'?' active':''}" data-tab="aggregate">Agregado</button>
-        <button class="tab${adminTab==='users'?' active':''}" data-tab="users">Por usuário</button>
-        <button class="tab${adminTab==='verdict'?' active':''}" data-tab="verdict">Veredicto</button>
-      </div>
-      ${total===0 ? `<div class="empty"><div style="font-size:28px;margin-bottom:10px">📭</div><div>Nenhuma resposta ainda.</div></div>`
-        : adminTab==='aggregate' ? renderAggregate(responses)
-        : adminTab==='users'     ? renderUsers(responses)
-        : renderVerdict(verdict) }
-    </div>`;
+  const { responses, adminTab, loading } = STATE;
+  if (loading) return `<div class="spinner">Buscando dados...</div>`;
+  return `<div style="padding-top:2rem"><div class="logo">arco Admin</div><div class="tab-row"><button class="tab active" data-tab="aggregate">Resultados (${responses.length})</button></div>${renderAggregate(responses)}</div>`;
 }
 
 function renderAggregate(responses) {
   return QUESTIONS.map(q => {
-    const color = blockColors[q.block];
-    const bg = blockBgs[q.block];
-    const total = responses.length;
-    return `
-      <div class="result-card">
-        <div class="badge" style="background:${bg};color:${color};border-color:${color}33">${q.block}</div>
-        <div style="font-size:13px;font-weight:500;margin-bottom:12px">${q.text}</div>
-        ${q.options.map(opt => {
-          const n = countOpt(responses, q.id, opt);
-          const p = pctOf(n, total);
-          return `<div class="bar-row">
-            <div class="bar-meta"><span>${opt}</span><span style="font-weight:600;color:${p>=50?color:'var(--text2)'}">${p}% <span style="font-weight:400;color:var(--text3)">(${n})</span></span></div>
-            <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${p>=50?color:color+'55'}"></div></div>
-          </div>`;
-        }).join('')}
-      </div>`;
+    const total = responses.length, color = blockColors[q.block];
+    return `<div class="result-card"><strong>${q.text}</strong><br><br>${q.options.map(opt => {
+      const n = countOpt(responses, q.id, opt), p = pctOf(n, total);
+      return `<div class="bar-meta">${opt} (${p}%)</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${color}"></div></div><br>`;
+    }).join('')}</div>`;
   }).join('');
 }
 
-function renderUsers(responses) {
-  return responses.map((r,i) => `
-    <div class="user-row" data-user-idx="${i}">
-      <div class="avatar">${initials(r.name)}</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:600">${r.name}</div>
-        <div style="font-size:11px;color:var(--text2)">${r.role} · ${r.office}</div>
-      </div>
-      <div style="font-size:11px;color:var(--text3)">${new Date(r.created_at).toLocaleDateString('pt-BR')}</div>
-      <div style="font-size:14px;color:var(--text3)">→</div>
-    </div>`).join('');
-}
-
-function renderUserDetail(r) {
-  const answers = typeof r.answers === 'string' ? JSON.parse(r.answers) : r.answers;
-  return `
-    <div style="padding-top:1.5rem">
-      <button class="back-btn" id="btn-back-users">← Voltar à lista</button>
-      <div class="user-detail-header">
-        <div class="avatar" style="width:40px;height:40px;font-size:14px">${initials(r.name)}</div>
-        <div>
-          <div style="font-size:14px;font-weight:600">${r.name}</div>
-          <div style="font-size:12px;color:var(--text2)">${r.role} · ${r.office}</div>
-          <div style="font-size:11px;color:var(--text3)">${r.email} · ${new Date(r.created_at).toLocaleDateString('pt-BR')}</div>
-        </div>
-      </div>
-      ${QUESTIONS.map(q => {
-        const color = blockColors[q.block];
-        const bg = blockBgs[q.block];
-        const ans = answers[q.id] || [];
-        return `<div class="result-card" style="margin-bottom:10px">
-          <div class="badge" style="background:${bg};color:${color};border-color:${color}33">${q.block}</div>
-          <div style="font-size:12px;font-weight:500;margin-bottom:8px">${q.text}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px">
-            ${ans.length ? ans.map(a=>`<span style="background:${bg};color:${color};border:1px solid ${color}33;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">${a}</span>`).join('')
-                         : `<span style="font-size:12px;color:var(--text3)">Não respondida</span>`}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
-}
-
-function renderVerdict(verdict) {
-  const borderColors = ['#D85A30','#EF9F27',ACCENT,ACCENT,ACCENT];
-  const labels = ['🔥 Prioridade máxima','⚡ Alta prioridade',''];
-  if (!verdict.length) return `<div class="empty">Dados insuficientes para gerar veredicto.</div>`;
-  return verdict.map((v,i) => `
-    <div class="verdict-item" style="border-left:3px solid ${borderColors[i]||ACCENT}">
-      <div style="font-size:20px">${v.icon}</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;margin-bottom:2px">${labels[i]?labels[i]+' — ':''}${v.title}</div>
-        <div style="font-size:12px;color:var(--text2)">${v.desc}</div>
-      </div>
-      <div class="verdict-score" style="color:${borderColors[i]||ACCENT}">${v.score}%</div>
-    </div>`).join('');
-}
-
-// ── Events ────────────────────────────────────────────────
 function bindEvents() {
   const $ = id => document.getElementById(id);
-
-  // Register
-  const btnStart = $('btn-start');
-  if (btnStart) btnStart.onclick = async () => {
-    const name  = ($('f-name')||{}).value?.trim();
-    const email = ($('f-email')||{}).value?.trim().toLowerCase();
-    const office= ($('f-office')||{}).value?.trim();
-    const role  = STATE.fRole;
-    if (!name||!email||!office||!role) return setState({ err:'Preencha todos os campos.' });
-    if (!/\S+@\S+\.\S+/.test(email)) return setState({ err:'Email inválido.' });
-    setState({ err:'', loading:true });
-    try {
-      const dup = await sbCheckEmail(email);
-      if (dup) return setState({ loading:false, err:'Este email já respondeu a pesquisa.' });
-    } catch {}
-    setState({ loading:false, user:{ name, email, office, role }, view:'survey', answers:{}, current:0 });
-  };
-
-  // Admin login button from register
-  const btnAdminLogin = $('btn-admin-login');
-  if (btnAdminLogin) btnAdminLogin.onclick = () => setState({ view:'admin-login', err:'' });
-
-  // Role buttons
-  document.querySelectorAll('.role-btn').forEach(b => {
-    b.onclick = () => setState({ fRole: b.dataset.role,
-      fName: ($('f-name')||{}).value, fEmail: ($('f-email')||{}).value, fOffice: ($('f-office')||{}).value });
-  });
-
-  // Preserve input values on re-render
-  ['f-name','f-email','f-office'].forEach(id => {
-    const el = $(id);
-    if (el) el.oninput = () => {
-      if (id==='f-name') STATE.fName = el.value;
-      if (id==='f-email') STATE.fEmail = el.value;
-      if (id==='f-office') STATE.fOffice = el.value;
-    };
-  });
-
-  // Survey options
-  document.querySelectorAll('.opt-btn').forEach(b => {
-    b.onclick = () => {
-      const q = QUESTIONS[STATE.current];
-      const opt = b.dataset.opt;
-      let ans = { ...STATE.answers };
-      if (q.type==='single') ans[q.id] = [opt];
-      else {
-        const prev = ans[q.id]||[];
-        ans[q.id] = prev.includes(opt) ? prev.filter(o=>o!==opt) : [...prev, opt];
-      }
-      setState({ answers: ans });
-    };
-  });
-
-  const btnPrev = $('btn-prev');
-  if (btnPrev) btnPrev.onclick = () => setState({ current: STATE.current - 1 });
-
-  const btnNext = $('btn-next');
-  if (btnNext) btnNext.onclick = async () => {
-    if (STATE.current + 1 < QUESTIONS.length) { setState({ current: STATE.current + 1 }); return; }
+  if ($('btn-start')) $('btn-start').onclick = async () => {
+    const name = $('f-name').value, email = $('f-email').value.toLowerCase(), office = $('f-office').value, role = STATE.fRole;
+    if (!name || !email || !office || !role) return setState({ err: 'Preencha tudo' });
     setState({ loading: true });
     try {
-      await sbInsert({ name: STATE.user.name, email: STATE.user.email,
-        office: STATE.user.office, role: STATE.user.role, answers: STATE.answers });
-    } catch(e) { console.error('Save error:', e); }
-    setState({ loading: false, view: 'thanks' });
+      if (await sbCheckEmail(email)) return setState({ loading: false, err: 'Já respondeu' });
+      setState({ loading: false, user: { name, email, office, role }, view: 'survey' });
+    } catch (e) { setState({ loading: false, err: 'Erro de conexão' }); }
   };
-
-  // Thanks
-  const btnGoAdmin = $('btn-go-admin');
-  if (btnGoAdmin) btnGoAdmin.onclick = () => { loadAdmin(); };
-
-  // New response
-  document.querySelectorAll('#btn-new-resp').forEach(b => {
-    b.onclick = () => setState({ view:'register', user:null, answers:{}, current:0, fName:'', fEmail:'', fOffice:'', fRole:'', err:'' });
+  if ($('btn-admin-login')) $('btn-admin-login').onclick = () => setState({ view: 'admin-login' });
+  document.querySelectorAll('.role-btn').forEach(b => b.onclick = () => setState({ fRole: b.dataset.role, fName: $('f-name').value, fEmail: $('f-email').value, fOffice: $('f-office').value }));
+  document.querySelectorAll('.opt-btn').forEach(b => b.onclick = () => {
+    const q = QUESTIONS[STATE.current], opt = b.dataset.opt;
+    let ans = { ...STATE.answers };
+    ans[q.id] = q.type === 'single' ? [opt] : (ans[q.id] || []).includes(opt) ? ans[q.id].filter(o => o !== opt) : [...(ans[q.id] || []), opt];
+    setState({ answers: ans });
   });
-
-  // Admin login
-  const btnAdminEnter = $('btn-admin-enter');
-  if (btnAdminEnter) btnAdminEnter.onclick = () => {
-    const pwd = ($('f-pwd')||{}).value;
-    if (pwd !== CFG.adminPassword) return setState({ err:'Senha incorreta.' });
-    loadAdmin();
+  if ($('btn-prev')) $('btn-prev').onclick = () => setState({ current: STATE.current - 1 });
+  if ($('btn-next')) $('btn-next').onclick = async () => {
+    if (STATE.current + 1 < QUESTIONS.length) return setState({ current: STATE.current + 1 });
+    setState({ loading: true });
+    try {
+      await sbInsert({ ...STATE.user, answers: STATE.answers });
+      setState({ loading: false, view: 'thanks' });
+    } catch (e) { setState({ loading: false }); alert('Erro ao salvar'); }
   };
-
-  const btnBackSurvey = $('btn-back-survey');
-  if (btnBackSurvey) btnBackSurvey.onclick = () => setState({ view:'register', err:'' });
-
-  // Admin tabs
-  document.querySelectorAll('.tab').forEach(b => {
-    b.onclick = () => setState({ adminTab: b.dataset.tab, selectedUser: null });
-  });
-
-  // User rows
-  document.querySelectorAll('.user-row').forEach(b => {
-    b.onclick = () => {
-      const idx = parseInt(b.dataset.userIdx);
-      setState({ adminTab:'user-detail', selectedUser: STATE.responses[idx] });
-    };
-  });
-
-  const btnBackUsers = $('btn-back-users');
-  if (btnBackUsers) btnBackUsers.onclick = () => setState({ adminTab:'users', selectedUser:null });
+  if ($('btn-admin-enter')) $('btn-admin-enter').onclick = () => { if ($('f-pwd').value === CFG.adminPassword) loadAdmin(); else alert('Erro'); };
+  if ($('btn-go-admin')) $('btn-go-admin').onclick = () => loadAdmin();
 }
 
 async function loadAdmin() {
-  setState({ view:'admin', loading:true, adminTab:'aggregate' });
-  try {
-    const data = await sbGetAll();
-    setState({ responses: data||[], loading:false });
-  } catch(e) {
-    setState({ responses:[], loading:false });
-  }
+  setState({ view: 'admin', loading: true });
+  try { const data = await sbGetAll(); setState({ responses: data || [], loading: false }); } catch (e) { setState({ loading: false }); }
 }
 
-// Init
 render();
 </script>
 </body>
